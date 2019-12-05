@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+import pandas as pd
 
 from bs4 import BeautifulSoup
 
@@ -108,6 +109,10 @@ class SeleniumCtrl:
 
 
 if __name__ == "__main__":
+
+    df = pd.DataFrame(None, columns=['page', 'title', 'link'])
+    print(df)
+
     driver = SeleniumCtrl()
     driver.get_rid_of_contract()
     print("please insert a search keyword(s) or an url")
@@ -135,6 +140,7 @@ if __name__ == "__main__":
     # TODO: create a better method to display colored results in print. For info: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-terminal-in-python
 
     page_to_parse = 10 # it must replaced with param got from command line or from config.cfg
+    page_number = 1
 
     while page_to_parse >= 1:
 
@@ -142,34 +148,41 @@ if __name__ == "__main__":
             if item.parent.name == "a":
                 if item and item.get_text():
                     a_tag = item.parent
-                    result.append({item.get_text(): a_tag["href"]})
+
+                    # create Pandas Series
+                    serie = pd.Series({'page': page_number, 'title': item.get_text(), 'link': a_tag['href']}) # at this point it still lacks of absolute index.
+                    print(serie)
+
+                    # inject Series into Pandas df
+                    df = df.append(serie, ignore_index=True)
             else:
                 if item and item.get_text():
-                    result.append({item.get_text(): "NO LINK AVAILABLE"})
+                    pass
 
         # print results in terminal: saving in CSV yet to be implemented
-        counter = 0
-        if page_to_parse <= 1:
-            for elem in result:
-                if my_key in str(elem.values()): # search for matching string in found values (the http links)
+        # old print in terminal is gonna be dismissed
+        '''if page_to_parse <= 1:
+            for i in range(0, len(result)):
+                if my_key in str(result[i].values()): # search for matching string in found values (the http links)
                     make_evident = True
-                    counter += 1
                 else:
                     make_evident = False
 
                 if make_evident:
-                    magenta(elem)
+                    magenta(f"abs pos:{i}, for  page {result[i]}")
                 else:
-                    print(elem)
+                    print(result[i])'''
 
-            print(f"\n{counter} - number of matching entries\n")
+        if page_to_parse <= 1:
+            print(df)
 
+        page_number += 1
         page_to_parse -= 1
+
         # here switch to next SERP page
         soup, my_h3 = driver.go_to_next_serp_page(soup)
 
     # quit driver as job is done - eventually prompt for further researches
-
     driver.quit_driver()
 
 
