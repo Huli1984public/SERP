@@ -141,6 +141,7 @@ if __name__ == "__main__":
 
     page_to_parse = 10 # it must replaced with param got from command line or from config.cfg
     page_number = 1
+    absolute_position = 1
 
     while page_to_parse >= 1:
 
@@ -150,14 +151,14 @@ if __name__ == "__main__":
                     a_tag = item.parent
 
                     # create Pandas Series
-                    serie = pd.Series({'page': page_number, 'title': item.get_text(), 'link': a_tag['href']}) # at this point it still lacks of absolute index.
-                    print(serie)
+                    serie = pd.Series({'page': page_number, 'abs Pos': absolute_position, 'title': item.get_text(), 'link': a_tag['href']}) # at this point it still lacks of absolute index.
+                    absolute_position += 1
 
                     # inject Series into Pandas df
                     df = df.append(serie, ignore_index=True)
             else:
                 if item and item.get_text():
-                    pass
+                    absolute_position += 1
 
         # print results in terminal: saving in CSV yet to be implemented
         # old print in terminal is gonna be dismissed
@@ -174,7 +175,8 @@ if __name__ == "__main__":
                     print(result[i])'''
 
         if page_to_parse <= 1:
-            print(df)
+            with pd.option_context('display.max_columns', None):
+                print(df)
 
         page_number += 1
         page_to_parse -= 1
