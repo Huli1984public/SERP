@@ -169,6 +169,7 @@ if __name__ == "__main__":
         soup, my_h3 = driver.go_to_next_serp_page(soup)
 
     # quit driver as job is done - eventually prompt for further researches
+
     driver.quit_driver()
 
 
