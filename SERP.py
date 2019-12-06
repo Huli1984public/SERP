@@ -21,7 +21,7 @@ def magenta(text):
 
 
 def get_rest():
-    value = randint(0, 120)
+    value = randint(0, 20)
     time.sleep(base_of_random + value)
 
 
