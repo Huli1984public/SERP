@@ -179,6 +179,7 @@ if __name__ == "__main__":
             # here switch to next SERP page
             soup, my_h3, page_to_parse = driver.go_to_next_serp_page(soup, page_to_parse, time=seconds)
 
+        # reset the loops value to parse the next key
         if page_to_parse <= 1:
             driver.go_to_page(url_now)
             driver.wait_for_page_loaded(time=seconds)
