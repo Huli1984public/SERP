@@ -20,9 +20,9 @@ def magenta(text):
     print('\033[35m', text, '\033[0m', sep='')
 
 
-def get_rest():
-    value = randint(0, 20)
-    time.sleep(base_of_random + value)
+def get_rest(random_val=13, divisore=1):
+    value = randint(0, random_val)
+    time.sleep(base_of_random + int(value/divisore))
 
 
 class SeleniumCtrl:
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     for my_url in my_url_list:
 
-        get_rest()
+        get_rest(random_val=10)
         driver.search_with_google(my_url)
 
         seconds = int(data["max_time_to_wait"])
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
         for my_key in key_list:
             print(my_key, key_list)
-            get_rest()
+            get_rest(random_val=8)
             while page_to_parse >= 1:
                 for item in my_h3:
                     if item.parent.name == "a":
@@ -211,7 +211,7 @@ if __name__ == "__main__":
                 page_number = 1
                 absolute_position = 1
                 page_to_parse = data["page_to_parse"]
-                get_rest()
+                get_rest(random_val=10, divisore=2)
 
     # quit driver as job is done - eventually prompt for further researches
     df.to_csv('keypos.csv')
