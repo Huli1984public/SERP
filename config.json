@@ -1,5 +1,8 @@
 {
-    "key_list": ["benessereevita.it", "nutrizione"],
+    "default wait": 10,
+    "lazy mode": 1,
+    "urls": ["dieta dimagrante", "tisana zenzero", "partita iva nutrizionista", "nutrizionista napoli"],
+    "key_list": ["www.benessereevita.it"],
     "page_to_parse": 50,
     "max_time_to_wait": 5
 }
