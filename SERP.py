@@ -127,70 +127,77 @@ if __name__ == "__main__":
     with open("config.json", "r") as f:
         data = json.load(f)
 
-    df = pd.DataFrame(None, columns=['page', 'title', 'link'])
+    df = pd.DataFrame(None, columns=['google search', 'key', 'page', "abs Pos", 'title', 'link'])
 
     driver = SeleniumCtrl()
     driver.get_rid_of_contract()
-    print("please insert a search keyword(s) or an url")
-    my_url = input()
-    driver.search_with_google(my_url)
 
-    seconds = int(data["max_time_to_wait"])
+    print("getting urls from configuration file: edit it to add or remove google search keywords")
+    my_url_list = data["urls"]
 
-    # now it waits for page loading using selenium proper method
-    driver.wait_for_page_loaded(time=seconds)
-    url_now = driver.get_url()
+    for my_url in my_url_list:
 
-    # here it starts processing the results
-    page = driver.get_source()
+        driver.search_with_google(my_url)
 
-    # parse in beautiful soup
-    soup = BeautifulSoup(page, features="lxml")
-    my_h3 = soup.find_all("h3")
+        seconds = int(data["max_time_to_wait"])
 
-    key_list = data["key_list"]
-    page_to_parse = data["page_to_parse"]
+        # now it waits for page loading using selenium proper method
+        driver.wait_for_page_loaded(time=seconds)
+        url_now = driver.get_url()
 
-    page_number = 1
-    absolute_position = 1
+        # here it starts processing the results
+        page = driver.get_source()
 
-    for my_key in key_list:
-        print(my_key, key_list)
-        while page_to_parse >= 1:
-            for item in my_h3:
-                if item.parent.name == "a":
-                    if item and item.get_text():
-                        a_tag = item.parent
-                        absolute_position += 1
+        # parse in beautiful soup
+        soup = BeautifulSoup(page, features="lxml")
+        my_h3 = soup.find_all("h3")
 
-                        # create Pandas Series
-                        if my_key in str(a_tag['href']):
+        key_list = data["key_list"]
+        page_to_parse = data["page_to_parse"]
+
+        page_number = 1
+        absolute_position = 1
+
+        for my_key in key_list:
+            print(my_key, key_list)
+            while page_to_parse >= 1:
+                for item in my_h3:
+                    if item.parent.name == "a":
+                        if item and item.get_text():
+                            a_tag = item.parent
+                            absolute_position += 1
+
                             # create Pandas Series
-                            serie = pd.Series({'key': my_key, 'page': page_number, 'abs Pos': absolute_position, 'title': item.get_text(), 'link': a_tag['href']})  # at this point it still lacks of absolute index.
-                            # inject Series into Pandas df
-                            df = df.append(serie, ignore_index=True)
-                else:
-                    if item and item.get_text():
-                        absolute_position += 1
+                            if my_key in str(a_tag['href']):
+                                # create Pandas Series
+                                serie = pd.Series({'google search': my_url, 'key': my_key, 'page': page_number,
+                                                   'abs Pos': absolute_position, 'title': item.get_text(),
+                                                   'link': a_tag[
+                                                       'href']})  # at this point it still lacks of absolute index.
+                                # inject Series into Pandas df
+                                df = df.append(serie, ignore_index=True)
+                    else:
+                        if item and item.get_text():
+                            absolute_position += 1
 
-            page_number += 1
-            page_to_parse -= 1
+                page_number += 1
+                page_to_parse -= 1
 
-            # here switch to next SERP page
-            soup, my_h3, page_to_parse = driver.go_to_next_serp_page(soup, page_to_parse, time=seconds)
+                # here switch to next SERP page
+                soup, my_h3, page_to_parse = driver.go_to_next_serp_page(soup, page_to_parse, time=seconds)
 
-        # reset the loops value to parse the next key
-        if page_to_parse <= 1:
-            driver.go_to_page(url_now)
-            driver.wait_for_page_loaded(time=seconds)
-            page = driver.get_source()
+            # reset the loops value to parse the next key
+            if page_to_parse <= 1:
+                driver.go_to_page(url_now)
+                driver.wait_for_page_loaded(time=seconds)
+                page = driver.get_source()
 
-            # parse in beautiful soup
-            soup = BeautifulSoup(page, features="lxml")
-            my_h3 = soup.find_all("h3")
-            page_number = 1
-            absolute_position = 1
-            page_to_parse = data["page_to_parse"]
+                # parse in beautiful soup
+                soup = BeautifulSoup(page, features="lxml")
+                my_h3 = soup.find_all("h3")
+                page_number = 1
+                absolute_position = 1
+                page_to_parse = data["page_to_parse"]
 
     # quit driver as job is done - eventually prompt for further researches
     df.to_csv('keypos.csv')
