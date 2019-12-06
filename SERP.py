@@ -1,5 +1,7 @@
 import time
 import sys
+import pickle
+import json
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.keys import Keys
@@ -46,8 +48,10 @@ class SeleniumCtrl:
         google_bar.send_keys(str(my_search_query).replace("b'", "").replace("'", ""))
         google_bar.send_keys(Keys.ENTER)
 
-        # get rid of privacy contract with google (it would block navigation)
+    def get_url(self):
+        return self.browser.current_url
 
+    # get rid of privacy contract with google (it would block navigation)
     def get_rid_of_contract(self):
         time.sleep(5)
         driver = self.browser
@@ -86,22 +90,32 @@ class SeleniumCtrl:
         my_raw_source = driver.page_source
         return my_raw_source
 
-    def wait_for_page_loaded(self):
+    def wait_for_page_loaded(self, time=10):
         try:
-            Wait(self.browser, 10).until(
-                EC.presence_of_element_located((By.ID, "brs"))
+            Wait(self.browser, time).until(
+                EC.presence_of_element_located((By.ID, "foot"))
             )
         except TimeoutException as e:
-            print(e, "connection takes too long", file=sys.stderr)
-            driver.quit_driver()
+            try:
+                Wait(self.browser, time).until(
+                    EC.presence_of_element_located((By.ID, "brs"))
+                )
+            except TimeoutException as e:
+                print(e, "connection takes too long", file=sys.stderr)
+                # driver.quit_driver()
 
-    def go_to_next_serp_page(self, parsed_html):
+    def go_to_next_serp_page(self, parsed_html, remains, time=10):
         next_a = parsed_html.find("a", id="pnnext")
-        self.browser.get(f"https://www.google.com{next_a['href']}")
-        self.wait_for_page_loaded()
-        parsed_html = BeautifulSoup(self.browser.page_source, features="lxml")
-        h3_list = parsed_html.find_all("h3")
-        return parsed_html, h3_list
+        try:
+            self.browser.get(f"https://www.google.com{next_a['href']}")
+            self.wait_for_page_loaded(time)
+            parsed_html = BeautifulSoup(self.browser.page_source, features="lxml")
+            h3_list = parsed_html.find_all("h3")
+            return parsed_html, h3_list, remains
+        except TypeError as e:
+            print(f'End of pages reached')
+            remains = 0
+            return parsed_html, [], remains
 
     def quit_driver(self):
         print("closing application...")
@@ -110,19 +124,22 @@ class SeleniumCtrl:
 
 if __name__ == "__main__":
 
+    with open("config.json", "r") as f:
+        data = json.load(f)
+
     df = pd.DataFrame(None, columns=['page', 'title', 'link'])
-    print(df)
 
     driver = SeleniumCtrl()
     driver.get_rid_of_contract()
     print("please insert a search keyword(s) or an url")
     my_url = input()
-    print("please insert the specific string you're looking for into the results")
-    my_key = input()
     driver.search_with_google(my_url)
 
+    seconds = int(data["max_time_to_wait"])
+
     # now it waits for page loading using selenium proper method
-    driver.wait_for_page_loaded()
+    driver.wait_for_page_loaded(time=seconds)
+    url_now = driver.get_url()
 
     # here it starts processing the results
     page = driver.get_source()
@@ -131,60 +148,53 @@ if __name__ == "__main__":
     soup = BeautifulSoup(page, features="lxml")
     my_h3 = soup.find_all("h3")
 
-    '''ATM it processes still only ONE SERP page: the first'''
-    result = []
+    key_list = data["key_list"]
+    page_to_parse = data["page_to_parse"]
 
-    # TODO: add a better way to store collected data: [number in SERP, {site tile: http link}]
-    # TODO: save retrivied results into a .csv file with Pandas
-    # TODO: create a config.cfg file where storing the default number of SERP's page to parse and other useful defaults (as the max seconds to wait for loading a page)
-    # TODO: create a better method to display colored results in print. For info: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-terminal-in-python
-
-    page_to_parse = 10 # it must replaced with param got from command line or from config.cfg
     page_number = 1
     absolute_position = 1
 
-    while page_to_parse >= 1:
+    for my_key in key_list:
+        print(my_key, key_list)
+        while page_to_parse >= 1:
+            for item in my_h3:
+                if item.parent.name == "a":
+                    if item and item.get_text():
+                        a_tag = item.parent
+                        absolute_position += 1
 
-        for item in my_h3:
-            if item.parent.name == "a":
-                if item and item.get_text():
-                    a_tag = item.parent
-
-                    # create Pandas Series
-                    serie = pd.Series({'page': page_number, 'abs Pos': absolute_position, 'title': item.get_text(), 'link': a_tag['href']}) # at this point it still lacks of absolute index.
-                    absolute_position += 1
-
-                    # inject Series into Pandas df
-                    df = df.append(serie, ignore_index=True)
-            else:
-                if item and item.get_text():
-                    absolute_position += 1
-
-        # print results in terminal: saving in CSV yet to be implemented
-        # old print in terminal is gonna be dismissed
-        '''if page_to_parse <= 1:
-            for i in range(0, len(result)):
-                if my_key in str(result[i].values()): # search for matching string in found values (the http links)
-                    make_evident = True
+                        # create Pandas Series
+                        if my_key in str(a_tag['href']):
+                            # create Pandas Series
+                            serie = pd.Series({'key': my_key, 'page': page_number, 'abs Pos': absolute_position, 'title': item.get_text(), 'link': a_tag['href']})  # at this point it still lacks of absolute index.
+                            # inject Series into Pandas df
+                            df = df.append(serie, ignore_index=True)
                 else:
-                    make_evident = False
+                    if item and item.get_text():
+                        absolute_position += 1
 
-                if make_evident:
-                    magenta(f"abs pos:{i}, for  page {result[i]}")
-                else:
-                    print(result[i])'''
+            page_number += 1
+            page_to_parse -= 1
+
+            # here switch to next SERP page
+            soup, my_h3, page_to_parse = driver.go_to_next_serp_page(soup, page_to_parse, time=seconds)
 
         if page_to_parse <= 1:
-            with pd.option_context('display.max_columns', None):
-                print(df)
+            driver.go_to_page(url_now)
+            driver.wait_for_page_loaded(time=seconds)
+            page = driver.get_source()
 
-        page_number += 1
-        page_to_parse -= 1
-
-        # here switch to next SERP page
-        soup, my_h3 = driver.go_to_next_serp_page(soup)
+            # parse in beautiful soup
+            soup = BeautifulSoup(page, features="lxml")
+            my_h3 = soup.find_all("h3")
+            page_number = 1
+            absolute_position = 1
+            page_to_parse = data["page_to_parse"]
 
     # quit driver as job is done - eventually prompt for further researches
+    df.to_csv('keypos.csv')
+    with pd.option_context('display.max_columns', None):
+        print(df)
     driver.quit_driver()
 
 

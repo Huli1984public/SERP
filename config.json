@@ -1,0 +1,5 @@
+{
+    "key_list": ["benessereevita.it", "nutrizione"],
+    "page_to_parse": 50,
+    "max_time_to_wait": 5
+}
