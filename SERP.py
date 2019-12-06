@@ -3,6 +3,7 @@ import sys
 from random import randint
 import json
 from selenium import webdriver
+from fake_useragent import UserAgent
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
@@ -37,8 +38,13 @@ class SeleniumCtrl:
 
         '''INSERT YOUR PROFILE PATH!!'''
         # profile = webdriver.FirefoxProfile("your path to/profile") # here it goes a firefox profile, setting up a saved profile is the best option
+        user_agent = UserAgent()
+        user_agent = user_agent.random
+        print(f"{user_agent}, user agent")
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference("general.useragent.override", f"{user_agent}")
 
-        browser = webdriver.Firefox(executable_path=r"geckodriver")
+        browser = webdriver.Firefox(capabilities=cap, options=options, firefox_profile=profile, executable_path=r"geckodriver")
         self.browser = browser
 
     def go_to_page(self, my_url):
@@ -134,15 +140,16 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(None, columns=['google search', 'key', 'page', "abs Pos", 'title', 'link'])
 
-    driver = SeleniumCtrl()
-    driver.get_rid_of_contract()
-
     print("getting urls from configuration file: edit it to add or remove google search keywords")
     my_url_list = data["urls"]
     lazy_search = data["lazy mode"]
     base_of_random = data["default wait"]
 
     for my_url in my_url_list:
+
+        driver = SeleniumCtrl()
+        print("opening browser")
+        driver.get_rid_of_contract()
 
         get_rest(random_val=10)
         driver.search_with_google(my_url)
@@ -167,7 +174,7 @@ if __name__ == "__main__":
         absolute_position = 1
 
         for my_key in key_list:
-            print(my_key, key_list)
+            print(my_url, my_key, key_list)
             get_rest(random_val=8)
             while page_to_parse >= 1:
                 for item in my_h3:
@@ -212,12 +219,14 @@ if __name__ == "__main__":
                 absolute_position = 1
                 page_to_parse = data["page_to_parse"]
                 get_rest(random_val=10, divisore=2)
+                driver.quit_driver()
 
     # quit driver as job is done - eventually prompt for further researches
     df.to_csv('keypos.csv')
     with pd.option_context('display.max_columns', None):
         print(df)
-    driver.quit_driver()
+    if driver:
+        driver.quit_driver()
 
 
 

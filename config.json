@@ -1,8 +1,9 @@
 {
+    "use proxy": 1,
     "max_random": 10,
     "default wait": 7,
     "lazy mode": 1,
-    "urls": ["dieta dimagrante", "tisana zenzero", "partita iva nutrizionista", "nutrizionista napoli"],
+    "urls": ["dieta dimagrante", "tisana zenzero", "partita iva nutrizionista", "nutrizionista napoli", "Peperoncino","peperoncino benefici", "proprietà peperoncino", "Hydrobike", "Hydrobike per dimagrire", "Tisana zenzero e cannella", "Tisana curcuma", "curcuma proprietà", "Zenzero proprietà", "Nutrizionista a Napoli", "Nutrizionista crotone", "Nutrizionista Firenze", "Nutrizionista Latina"],
     "key_list": ["www.benessereevita.it"],
     "page_to_parse": 50,
     "max_time_to_wait": 5
