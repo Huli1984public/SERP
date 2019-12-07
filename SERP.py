@@ -28,7 +28,7 @@ def get_rest(random_val=13, divisore=1):
 
 class SeleniumCtrl:
 
-    def __init__(self, headless):
+    def __init__(self, headless, gecko):
 
         options = Options()
         options.add_argument('-headless')
@@ -45,9 +45,9 @@ class SeleniumCtrl:
         profile.set_preference("general.useragent.override", f"{user_agent}")
 
         if headless:
-            browser = webdriver.Firefox(capabilities=cap, options=options, firefox_profile=profile, executable_path=r"geckodriver")
+            browser = webdriver.Firefox(capabilities=cap, options=options, firefox_profile=profile, executable_path=gecko)
         else:
-            browser = webdriver.Firefox(firefox_profile=profile, executable_path=r"geckodriver")
+            browser = webdriver.Firefox(firefox_profile=profile, executable_path=gecko)
 
         self.browser = browser
 
@@ -165,10 +165,11 @@ if __name__ == "__main__":
     lazy_search = data["lazy mode"]
     base_of_random = data["default wait"]
     headless = data["headless"]
+    geckodriver = data["geckodriver"]
 
     for my_url in my_url_list:
 
-        driver = SeleniumCtrl(headless)
+        driver = SeleniumCtrl(headless, geckodriver)
         print("opening browser")
         driver.get_rid_of_contract()
 

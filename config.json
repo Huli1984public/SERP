@@ -1,4 +1,5 @@
 {
+    "geckodriver": "geckodriver",
     "headless": 0,
     "use proxy": 1,
     "max_random": 10,
