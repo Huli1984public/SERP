@@ -1,4 +1,5 @@
 {
+    "headless": 0,
     "use proxy": 1,
     "max_random": 10,
     "default wait": 7,

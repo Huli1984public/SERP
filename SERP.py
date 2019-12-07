@@ -11,7 +11,7 @@ from selenium.webdriver.support import wait as Wait
 from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException
 import pandas as pd
 
 from bs4 import BeautifulSoup
@@ -28,7 +28,7 @@ def get_rest(random_val=13, divisore=1):
 
 class SeleniumCtrl:
 
-    def __init__(self):
+    def __init__(self, headless):
 
         options = Options()
         options.add_argument('-headless')
@@ -44,7 +44,11 @@ class SeleniumCtrl:
         profile = webdriver.FirefoxProfile()
         profile.set_preference("general.useragent.override", f"{user_agent}")
 
-        browser = webdriver.Firefox(capabilities=cap, options=options, firefox_profile=profile, executable_path=r"geckodriver")
+        if headless:
+            browser = webdriver.Firefox(capabilities=cap, options=options, firefox_profile=profile, executable_path=r"geckodriver")
+        else:
+            browser = webdriver.Firefox(firefox_profile=profile, executable_path=r"geckodriver")
+
         self.browser = browser
 
     def go_to_page(self, my_url):
@@ -55,7 +59,11 @@ class SeleniumCtrl:
     def search_with_google(self, my_search_query):
         driver = self.browser
         driver.get("https://www.google.com")
-        google_bar = driver.find_element_by_css_selector(".gLFyf")
+        try:
+            google_bar = driver.find_element_by_css_selector(".gLFyf")
+        except NoSuchElementException:
+            self.wait_for_page_loaded(time=3, obj="fsr")
+
         google_bar.send_keys(str(my_search_query).replace("b'", "").replace("'", ""))
         google_bar.send_keys(Keys.ENTER)
 
@@ -91,7 +99,17 @@ class SeleniumCtrl:
             my_page_body = driver.find_element_by_css_selector("body")
             my_page_body.send_keys(Keys.END)
             time.sleep(2)
-            my_magic_button.click()
+            try:
+                my_magic_button.click()
+            except ElementNotInteractableException:
+                time.sleep(5)
+                my_page_body.send_keys(Keys.END)
+                try:
+                    my_magic_button.click()
+                except ElementNotInteractableException as e:
+                    print(e)
+                    print("Critical error line 110")
+                    driver.quit()
             time.sleep(2)
 
         return False
@@ -101,10 +119,10 @@ class SeleniumCtrl:
         my_raw_source = driver.page_source
         return my_raw_source
 
-    def wait_for_page_loaded(self, time=10):
+    def wait_for_page_loaded(self, time=10, obj="foot"):
         try:
             Wait(self.browser, time).until(
-                EC.presence_of_element_located((By.ID, "foot"))
+                EC.presence_of_element_located((By.ID, obj))
             )
         except TimeoutException as e:
             try:
@@ -135,6 +153,8 @@ class SeleniumCtrl:
 
 if __name__ == "__main__":
 
+    start_time = time.time()
+
     with open("config.json", "r") as f:
         data = json.load(f)
 
@@ -144,10 +164,11 @@ if __name__ == "__main__":
     my_url_list = data["urls"]
     lazy_search = data["lazy mode"]
     base_of_random = data["default wait"]
+    headless = data["headless"]
 
     for my_url in my_url_list:
 
-        driver = SeleniumCtrl()
+        driver = SeleniumCtrl(headless)
         print("opening browser")
         driver.get_rid_of_contract()
 
@@ -227,6 +248,7 @@ if __name__ == "__main__":
         print(df)
     if driver:
         driver.quit_driver()
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 
